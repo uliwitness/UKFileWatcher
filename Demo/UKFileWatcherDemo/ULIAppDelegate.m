@@ -78,7 +78,7 @@ NSString	*	ULIUseFSEventsNotKQueue = @"ULIUseFSEventsNotKQueue";
 	if( !filesList )
 	{
 		NSError*	err = nil;
-		filesList = [[NSFileManager defaultManager] contentsOfDirectoryAtPath: currFolderPath error: &err];
+		filesList = [[[NSFileManager defaultManager] contentsOfDirectoryAtPath: currFolderPath error: &err] sortedArrayUsingSelector: @selector(caseInsensitiveCompare:)];
 		if( !filesList )
 			NSLog(@"Error listing files: %@", err);
 	}
@@ -96,7 +96,10 @@ NSString	*	ULIUseFSEventsNotKQueue = @"ULIUseFSEventsNotKQueue";
  */
 -(id)	tableView: (NSTableView *)tableView objectValueForTableColumn: (NSTableColumn *)tableColumn row: (NSInteger)row
 {
-	return [self.filesList objectAtIndex: row];
+	if( [tableColumn.identifier isEqualToString: @"name"] )
+		return [self.filesList objectAtIndex: row];
+	else
+		return [[NSWorkspace sharedWorkspace] iconForFile: [currFolderPath stringByAppendingPathComponent: [self.filesList objectAtIndex: row]]];
 }
 
 @end
