@@ -19,7 +19,8 @@ re-register for change notifications.
 UKFSEventsWatcher - Uses FSEvents under the hood. This is the same mechanism as Spotlight
 and Time Machine use. It can remember changes across restarts, but will sometimes report
 a large number of changes in the same folder as a vague "something in this folder
-changed".
+changed". It is geared towards watching when folder contents change, but that luckily
+includes changes to those files' contents.
 
 UKFNSubscribeFileWatcher - This is the mechanism the Finder used for a long time. It is
 the least resource-intensive as it coalesces updates that happen while your application is

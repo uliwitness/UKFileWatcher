@@ -62,10 +62,16 @@ static void FSEventCallback(ConstFSEventStreamRef inStreamRef,
 			{
 				[delegate watcher:watcher receivedNotification:UKFileWatcherWriteNotification forPath:path];
 				
-				[[[NSWorkspace sharedWorkspace] notificationCenter] 
+				[[NSNotificationCenter defaultCenter]
 					postNotificationName: UKFileWatcherWriteNotification
 					object:watcher
 					userInfo:[NSDictionary dictionaryWithObjectsAndKeys:path,@"path",nil]];
+#if UKKQ_NOTIFY_NSWORKSPACE_CENTER
+				[[[NSWorkspace sharedWorkspace] notificationCenter]
+					postNotificationName: UKFileWatcherWriteNotification
+					object:watcher
+					userInfo:[NSDictionary dictionaryWithObjectsAndKeys:path,@"path",nil]];
+#endif
 			}	
 		}
 	}
@@ -207,8 +213,11 @@ static void FSEventCallback(ConstFSEventStreamRef inStreamRef,
 {
 	BOOL directory;
 	BOOL exists = [[NSFileManager defaultManager] fileExistsAtPath:inPath isDirectory:&directory];
+	#if UKKQ_NOTIFY_NSWORKSPACE_CENTER
 	BOOL package = [[NSWorkspace sharedWorkspace] isFilePackageAtPath:inPath];
-	
+	#else
+	BOOL package = NO;
+	#endif
 	if (exists && directory==NO && package==NO)
 	{
 		inPath = [inPath stringByDeletingLastPathComponent];
