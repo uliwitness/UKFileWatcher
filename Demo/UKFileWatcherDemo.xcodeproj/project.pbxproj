@@ -16,7 +16,8 @@
 		55AF105118B8C70800819AE9 /* Images.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 55AF105018B8C70800819AE9 /* Images.xcassets */; };
 		55AF107218B8C7E800819AE9 /* UKFileWatcher.m in Sources */ = {isa = PBXBuildFile; fileRef = 55AF106D18B8C7E800819AE9 /* UKFileWatcher.m */; };
 		55AF107318B8C7E800819AE9 /* UKFSEventsWatcher.m in Sources */ = {isa = PBXBuildFile; fileRef = 55AF106F18B8C7E800819AE9 /* UKFSEventsWatcher.m */; settings = {COMPILER_FLAGS = "-fno-objc-arc"; }; };
-		55AF107418B8C7E800819AE9 /* UKKQueue.m in Sources */ = {isa = PBXBuildFile; fileRef = 55AF107118B8C7E800819AE9 /* UKKQueue.m */; };
+		55AF107418B8C7E800819AE9 /* UKKQueue.m in Sources */ = {isa = PBXBuildFile; fileRef = 55AF107118B8C7E800819AE9 /* UKKQueue.m */; settings = {COMPILER_FLAGS = "-fno-objc-arc"; }; };
+		55AF107718B8D32700819AE9 /* UKMainThreadProxy.m in Sources */ = {isa = PBXBuildFile; fileRef = 55AF107618B8D32700819AE9 /* UKMainThreadProxy.m */; settings = {COMPILER_FLAGS = "-fno-objc-arc"; }; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -44,6 +45,8 @@
 		55AF106F18B8C7E800819AE9 /* UKFSEventsWatcher.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; name = UKFSEventsWatcher.m; path = ../../UKFSEventsWatcher.m; sourceTree = "<group>"; };
 		55AF107018B8C7E800819AE9 /* UKKQueue.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = UKKQueue.h; path = ../../UKKQueue.h; sourceTree = "<group>"; };
 		55AF107118B8C7E800819AE9 /* UKKQueue.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; name = UKKQueue.m; path = ../../UKKQueue.m; sourceTree = "<group>"; };
+		55AF107518B8D32700819AE9 /* UKMainThreadProxy.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = UKMainThreadProxy.h; path = ../../ULIProxies/UKMainThreadProxy.h; sourceTree = "<group>"; };
+		55AF107618B8D32700819AE9 /* UKMainThreadProxy.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; name = UKMainThreadProxy.m; path = ../../ULIProxies/UKMainThreadProxy.m; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -107,6 +110,8 @@
 				55AF106F18B8C7E800819AE9 /* UKFSEventsWatcher.m */,
 				55AF107018B8C7E800819AE9 /* UKKQueue.h */,
 				55AF107118B8C7E800819AE9 /* UKKQueue.m */,
+				55AF107518B8D32700819AE9 /* UKMainThreadProxy.h */,
+				55AF107618B8D32700819AE9 /* UKMainThreadProxy.m */,
 				55AF104D18B8C70800819AE9 /* MainMenu.xib */,
 				55AF105018B8C70800819AE9 /* Images.xcassets */,
 				55AF103F18B8C70800819AE9 /* Supporting Files */,
@@ -216,6 +221,7 @@
 				55AF107318B8C7E800819AE9 /* UKFSEventsWatcher.m in Sources */,
 				55AF104C18B8C70800819AE9 /* ULIAppDelegate.m in Sources */,
 				55AF107418B8C7E800819AE9 /* UKKQueue.m in Sources */,
+				55AF107718B8D32700819AE9 /* UKMainThreadProxy.m in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
