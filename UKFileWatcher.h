@@ -53,7 +53,9 @@
 //  Protocol:
 // -----------------------------------------------------------------------------
 
-@protocol UKFileWatcher
+@protocol UKFileWatcherDelegate;
+
+@protocol UKFileWatcher <NSObject>
 
 // +(id) sharedFileWatcher;			// Singleton accessor. Not officially part of the protocol, but use this name if you provide a singleton.
 
@@ -62,7 +64,7 @@
 -(void)	removeAllPaths;
 
 -(id)   delegate;
--(void) setDelegate: (id)newDelegate;
+-(void) setDelegate: (id<UKFileWatcherDelegate>)newDelegate;
 
 @end
 
@@ -70,7 +72,7 @@
 //  Methods delegates need to provide:
 // -----------------------------------------------------------------------------
 
-@interface NSObject (UKFileWatcherDelegate)
+@protocol UKFileWatcherDelegate <NSObject>
 
 -(void) watcher: (id<UKFileWatcher>)kq receivedNotification: (NSString*)nm forPath: (NSString*)fpath;
 
