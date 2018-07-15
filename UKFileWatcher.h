@@ -34,22 +34,6 @@
 */
 
 // -----------------------------------------------------------------------------
-//  Preprocessor flags:
-// -----------------------------------------------------------------------------
-
-// For historical reasons (I was young and stupid) UKKQueue etc. send their
-//	notifications to NSWorkspace's notificationCenter. This is not available on
-//	 iOS or in Foundation tools, so we're switching to NSNotificationCenter.
-//	For backwards compatibility, we currently *also* send notifications to
-//	the workspace's notification center. Define this flag to 0 in your prefix
-//	header to remove this behaviour. This is recommended for new code. This
-//	behaviour will be removed in a future version.
-#ifndef UKKQ_NOTIFY_NSWORKSPACE_CENTER
-#define UKKQ_NOTIFY_NSWORKSPACE_CENTER		(!TARGET_OS_IPHONE && !TARGET_IPHONE_SIMULATOR)
-#endif
-
-
-// -----------------------------------------------------------------------------
 //  Protocol:
 // -----------------------------------------------------------------------------
 
@@ -63,8 +47,8 @@
 -(void) removePath: (NSString*)path;
 -(void)	removeAllPaths;
 
--(id)   delegate;
--(void) setDelegate: (id<UKFileWatcherDelegate>)newDelegate;
+-(id<UKFileWatcherDelegate>)	delegate;
+-(void)							setDelegate: (id<UKFileWatcherDelegate>)newDelegate;
 
 @end
 
@@ -81,8 +65,7 @@
 
 // Notifications this sends:
 /*  object			= the file watcher object
-	userInfo.path	= file path watched
-	These notifications are sent via the NSWorkspace notification center */
+	userInfo.path	= file path watched */
 extern NSString* UKFileWatcherRenameNotification;
 extern NSString* UKFileWatcherWriteNotification;
 extern NSString* UKFileWatcherDeleteNotification;

@@ -30,10 +30,13 @@
 // -----------------------------------------------------------------------------
 
 #import "UKKQueue.h"
-#import "UKMainThreadProxy.h"
 #import <unistd.h>
 #import <fcntl.h>
 #include <sys/stat.h>
+
+#if UKKQ_NOTIFY_NSWORKSPACE_CENTER
+#import <Cocoa/Cocoa.h>
+#endif
 
 // -----------------------------------------------------------------------------
 //  Macros:
@@ -184,10 +187,6 @@
 // -----------------------------------------------------------------------------
 
 static UKKQueueCentral	*	gUKKQueueSharedQueueSingleton = nil;
-static id					gUKKQueueSharedNotificationCenterProxy = nil;	// Object to which we send notifications so they get put in the main thread.
-#if UKKQ_NOTIFY_NSWORKSPACE_CENTER
-static id					gUKKQueueOldSharedNotificationCenterProxy = nil;	// Object to which we send notifications so they get put in the main thread.
-#endif
 
 
 @implementation UKKQueueCentral
@@ -203,16 +202,6 @@ static id					gUKKQueueOldSharedNotificationCenterProxy = nil;	// Object to whic
 	self = [super init];
 	if( self )
 	{
-		if( !gUKKQueueSharedNotificationCenterProxy )
-		{
-			gUKKQueueSharedNotificationCenterProxy = [[NSNotificationCenter defaultCenter] copyMainThreadProxy];	// Singleton, 'intentional leak'.
-			[gUKKQueueSharedNotificationCenterProxy setWaitForCompletion: NO];	// Better performance and avoid deadlocks.
-			#if UKKQ_NOTIFY_NSWORKSPACE_CENTER
-			gUKKQueueOldSharedNotificationCenterProxy = [[[NSWorkspace sharedWorkspace] notificationCenter] copyMainThreadProxy];	// Singleton, 'intentional leak'.
-			[gUKKQueueOldSharedNotificationCenterProxy setWaitForCompletion: NO];	// Better performance and avoid deadlocks.
-			#endif
-		}
-		
 		queueFD = kqueue();
 		if( queueFD == -1 )
 		{
@@ -380,8 +369,6 @@ static id					gUKKQueueOldSharedNotificationCenterProxy = nil;	// Object to whic
 //		notifications for the different kinds of changes that can happen.
 //		All messages are sent via the postNotification:forFile: main bottleneck.
 //
-//		This also calls sharedWorkspace's noteFileSystemChanged.
-//
 //      To terminate this method (and its thread), set keepThreadRunning to NO.
 // -----------------------------------------------------------------------------
 
@@ -413,9 +400,6 @@ static id					gUKKQueueOldSharedNotificationCenterProxy = nil;	// Object to whic
 						DEBUG_LOG_UKKQ( @"KEVENT flags are set" );
 						UKKQueuePathEntry*	pe = [[(UKKQueuePathEntry*)ev.udata retain] autorelease];    // In case one of the notified folks removes the path.
 						NSString*	fpath = [pe path];
-						#if UKKQ_NOTIFY_NSWORKSPACE_CENTER
-						[[NSWorkspace sharedWorkspace] noteFileSystemChanged: fpath];
-						#endif
 						
 						if( (ev.fflags & NOTE_RENAME) == NOTE_RENAME )
 							[self postNotification: UKFileWatcherRenameNotification forFile: fpath];
@@ -462,12 +446,11 @@ static id					gUKKQueueOldSharedNotificationCenterProxy = nil;	// Object to whic
 	DEBUG_LOG_UKKQ( @"%@: %@", nm, fp );
 	#endif
 	
-	[gUKKQueueSharedNotificationCenterProxy postNotificationName: nm object: self
-												userInfo: [NSDictionary dictionaryWithObjectsAndKeys: fp, @"path", nil]];	// The proxy sends the notification on the main thread.
-#if UKKQ_NOTIFY_NSWORKSPACE_CENTER
-	[gUKKQueueOldSharedNotificationCenterProxy postNotificationName: nm object: self
-												userInfo: [NSDictionary dictionaryWithObjectsAndKeys: fp, @"path", nil]];	// The proxy sends the notification on the main thread.
-#endif
+	dispatch_async(dispatch_get_main_queue(), ^{
+		[NSNotificationCenter.defaultCenter postNotificationName: nm object: self
+															userInfo: [NSDictionary dictionaryWithObjectsAndKeys: fp, @"path", nil]];
+		
+	});
 }
 
 @end
@@ -487,12 +470,12 @@ static id					gUKKQueueOldSharedNotificationCenterProxy = nil;	// Object to whic
 
 +(id) sharedFileWatcher
 {
-    @synchronized( [UKKQueueCentral class] )
-    {
-        if( !gUKKQueueSharedQueueSingleton )
-            gUKKQueueSharedQueueSingleton = [[UKKQueueCentral alloc] init];	// This is a singleton, and thus an intentional "leak".
-    }
-    
+	static dispatch_once_t onceToken;
+	dispatch_once(&onceToken, ^{
+		if( !gUKKQueueSharedQueueSingleton )
+			gUKKQueueSharedQueueSingleton = [[UKKQueueCentral alloc] init];	// This is a singleton, and thus an intentional "leak".
+	});
+	
     return gUKKQueueSharedQueueSingleton;
 }
 
@@ -658,10 +641,6 @@ static id					gUKKQueueOldSharedNotificationCenterProxy = nil;	// Object to whic
 	{
 		[[NSNotificationCenter defaultCenter] postNotificationName: nm object: self
 												userInfo: [notif userInfo]];	// Send the notification on to *our* clients only.
-#if UKKQ_NOTIFY_NSWORKSPACE_CENTER
-		[[[NSWorkspace sharedWorkspace] notificationCenter] postNotificationName: nm object: self
-												userInfo: [notif userInfo]];	// Send the notification on to *our* clients only.
-#endif
 	}
 }
 

@@ -66,13 +66,7 @@ static void FSEventCallback(ConstFSEventStreamRef inStreamRef,
 					postNotificationName: UKFileWatcherWriteNotification
 					object:watcher
 					userInfo:[NSDictionary dictionaryWithObjectsAndKeys:path,@"path",nil]];
-#if UKKQ_NOTIFY_NSWORKSPACE_CENTER
-				[[[NSWorkspace sharedWorkspace] notificationCenter]
-					postNotificationName: UKFileWatcherWriteNotification
-					object:watcher
-					userInfo:[NSDictionary dictionaryWithObjectsAndKeys:path,@"path",nil]];
-#endif
-			}	
+			}
 		}
 	}
 }
@@ -213,7 +207,7 @@ static void FSEventCallback(ConstFSEventStreamRef inStreamRef,
 {
 	BOOL directory;
 	BOOL exists = [[NSFileManager defaultManager] fileExistsAtPath:inPath isDirectory:&directory];
-	#if UKKQ_NOTIFY_NSWORKSPACE_CENTER
+	#if (!TARGET_OS_IPHONE && !TARGET_IPHONE_SIMULATOR)
 	BOOL package = [[NSWorkspace sharedWorkspace] isFilePackageAtPath:inPath];
 	#else
 	BOOL package = NO;

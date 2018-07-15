@@ -78,8 +78,8 @@
 -(void)		removeAllPaths;						// UKFileWatcher protocol.
 
 // For alloc/inited instances, you can specify a delegate instead of subscribing for notifications:
--(void)		setDelegate: (id)newDelegate;		// UKFileWatcher protocol.
--(id)		delegate;							// UKFileWatcher protocol.
+-(void)							setDelegate: (id<UKFileWatcherDelegate>)newDelegate;	// UKFileWatcher protocol.
+-(id<UKFileWatcherDelegate>)	delegate;	// UKFileWatcher protocol.
 
 @end
 
