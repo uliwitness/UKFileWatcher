@@ -25,6 +25,10 @@
 //	   distribution.
 //
 
+#if !__has_feature(objc_arc)
+#error This file requires ARC to compile.
+#endif
+
 // -----------------------------------------------------------------------------
 //  Headers:
 // -----------------------------------------------------------------------------
@@ -86,7 +90,6 @@
 		watchedFD = open( [path fileSystemRepresentation], O_EVTONLY, 0 );
 		if( watchedFD < 0 )
 		{
-			[self autorelease];
 			return nil;
 		}
 		subscriptionFlags = fflags;
@@ -98,14 +101,11 @@
 
 -(void)	dealloc
 {
-	[path release];
 	path = nil;
 	if( watchedFD >= 0 )
 		close(watchedFD);
 	watchedFD = -1;
 	pathRefCount = 0;
-	
-	[super dealloc];
 }
 
 -(void)	retainPath
@@ -205,7 +205,6 @@ static UKKQueueCentral	*	gUKKQueueSharedQueueSingleton = nil;
 		queueFD = kqueue();
 		if( queueFD == -1 )
 		{
-			[self release];
 			return nil;
 		}
 		
@@ -228,10 +227,7 @@ static UKKQueueCentral	*	gUKKQueueSharedQueueSingleton = nil;
 	// Close all our file descriptors so the files can be deleted:
 	[self removeAllPaths];
 	
-	[watchedFiles release];
 	watchedFiles = nil;
-	
-	[super dealloc];
 }
 
 
@@ -282,7 +278,7 @@ static UKKQueueCentral	*	gUKKQueueSharedQueueSingleton = nil;
 			[pe retainPath];	// Just add another subscription to this entry.
 			
 			if( ([pe subscriptionFlags] & fflags) == fflags )	// All flags already set?
-				return [[pe retain] autorelease];
+				return pe;
 			
 			fflags |= [pe subscriptionFlags];
 		}
@@ -291,13 +287,13 @@ static UKKQueueCentral	*	gUKKQueueSharedQueueSingleton = nil;
 		struct kevent		ev;
 		
 		if( !pe )
-			pe = [[[UKKQueuePathEntry alloc] initWithPath: path flags: fflags] autorelease];
+			pe = [[UKKQueuePathEntry alloc] initWithPath: path flags: fflags];
 		
 		if( pe )
 		{
-			EV_SET( &ev, [pe watchedFD], EVFILT_VNODE, 
+			EV_SET( &ev, [pe watchedFD], EVFILT_VNODE,
 					EV_ADD | EV_ENABLE | EV_CLEAR,
-					fflags, 0, pe );
+					fflags, 0, (__bridge void *) pe );
 			
 			[pe setSubscriptionFlags: fflags];
             [watchedFiles setObject: pe forKey: path];
@@ -310,7 +306,7 @@ static UKKQueueCentral	*	gUKKQueueSharedQueueSingleton = nil;
 				[NSThread detachNewThreadSelector:@selector(watcherThread:) toTarget:self withObject:nil];
 			}
         }
-		return [[pe retain] autorelease];
+		return pe;
    }
    
    return nil;
@@ -383,47 +379,49 @@ static UKKQueueCentral	*	gUKKQueueSharedQueueSingleton = nil;
 	DEBUG_LOG_UKKQ(@"watcherThread started.");
 	#endif
 	
-    while( keepThreadRunning )
-    {
-		NSAutoreleasePool*  pool = [[NSAutoreleasePool alloc] init];
-		
-		NS_DURING
-			n = kevent( queueFD, NULL, 0, &ev, 1, &timeout );
-			if( n > 0 )
+	while( keepThreadRunning )
+	{
+		@autoreleasepool
+		{
+			@try
 			{
-				DEBUG_LOG_UKKQ( @"KEVENT returned %d", n );
-				if( ev.filter == EVFILT_VNODE )
+				n = kevent( queueFD, NULL, 0, &ev, 1, &timeout );
+				if( n > 0 )
 				{
-					DEBUG_LOG_UKKQ( @"KEVENT filter is EVFILT_VNODE" );
-					if( ev.fflags )
+					DEBUG_LOG_UKKQ( @"KEVENT returned %d", n );
+					if( ev.filter == EVFILT_VNODE )
 					{
-						DEBUG_LOG_UKKQ( @"KEVENT flags are set" );
-						UKKQueuePathEntry*	pe = [[(UKKQueuePathEntry*)ev.udata retain] autorelease];    // In case one of the notified folks removes the path.
-						NSString*	fpath = [pe path];
-						
-						if( (ev.fflags & NOTE_RENAME) == NOTE_RENAME )
-							[self postNotification: UKFileWatcherRenameNotification forFile: fpath];
-						if( (ev.fflags & NOTE_WRITE) == NOTE_WRITE )
-							[self postNotification: UKFileWatcherWriteNotification forFile: fpath];
-						if( (ev.fflags & NOTE_DELETE) == NOTE_DELETE )
-							[self postNotification: UKFileWatcherDeleteNotification forFile: fpath];
-						if( (ev.fflags & NOTE_ATTRIB) == NOTE_ATTRIB )
-							[self postNotification: UKFileWatcherAttributeChangeNotification forFile: fpath];
-						if( (ev.fflags & NOTE_EXTEND) == NOTE_EXTEND )
-							[self postNotification: UKFileWatcherSizeIncreaseNotification forFile: fpath];
-						if( (ev.fflags & NOTE_LINK) == NOTE_LINK )
-							[self postNotification: UKFileWatcherLinkCountChangeNotification forFile: fpath];
-						if( (ev.fflags & NOTE_REVOKE) == NOTE_REVOKE )
-							[self postNotification: UKFileWatcherAccessRevocationNotification forFile: fpath];
+						DEBUG_LOG_UKKQ( @"KEVENT filter is EVFILT_VNODE" );
+						if( ev.fflags )
+						{
+							DEBUG_LOG_UKKQ( @"KEVENT flags are set" );
+							UKKQueuePathEntry*	pe = (__bridge UKKQueuePathEntry*)ev.udata;    // In case one of the notified folks removes the path.
+							NSString*	fpath = [pe path];
+							
+							if( (ev.fflags & NOTE_RENAME) == NOTE_RENAME )
+								[self postNotification: UKFileWatcherRenameNotification forFile: fpath];
+							if( (ev.fflags & NOTE_WRITE) == NOTE_WRITE )
+								[self postNotification: UKFileWatcherWriteNotification forFile: fpath];
+							if( (ev.fflags & NOTE_DELETE) == NOTE_DELETE )
+								[self postNotification: UKFileWatcherDeleteNotification forFile: fpath];
+							if( (ev.fflags & NOTE_ATTRIB) == NOTE_ATTRIB )
+								[self postNotification: UKFileWatcherAttributeChangeNotification forFile: fpath];
+							if( (ev.fflags & NOTE_EXTEND) == NOTE_EXTEND )
+								[self postNotification: UKFileWatcherSizeIncreaseNotification forFile: fpath];
+							if( (ev.fflags & NOTE_LINK) == NOTE_LINK )
+								[self postNotification: UKFileWatcherLinkCountChangeNotification forFile: fpath];
+							if( (ev.fflags & NOTE_REVOKE) == NOTE_REVOKE )
+								[self postNotification: UKFileWatcherAccessRevocationNotification forFile: fpath];
+						}
 					}
 				}
 			}
-		NS_HANDLER
-			NSLog(@"Error in UKKQueue watcherThread: %@",localException);
-		NS_ENDHANDLER
-		
-		[pool release];
-    }
+			@catch( NSException *localException )
+			{
+				NSLog(@"Error in UKKQueue watcherThread: %@",localException);
+			}
+		}
+	}
     
 	// Close our kqueue's file descriptor:
 	if( close( theFD ) == -1 )
@@ -522,7 +520,6 @@ static UKKQueueCentral	*	gUKKQueueSharedQueueSingleton = nil;
 	// Close all our file descriptors so the files can be deleted:
 	[self removeAllPaths];
 	
-	[watchedFiles release];
 	watchedFiles = nil;
 	
 	NSNotificationCenter*	nc = [NSNotificationCenter defaultCenter];
@@ -541,8 +538,6 @@ static UKKQueueCentral	*	gUKKQueueSharedQueueSingleton = nil;
 			name: UKFileWatcherLinkCountChangeNotification object: kqc];
 	[nc removeObserver: self
 			name: UKFileWatcherAccessRevocationNotification object: kqc];
-
-	[super dealloc];
 }
 
 
