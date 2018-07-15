@@ -25,6 +25,10 @@
 //	   distribution.
 //
 
+#if !__has_feature(objc_arc)
+#error This file requires ARC to compile.
+#endif
+
 // -----------------------------------------------------------------------------
 //  Headers:
 // -----------------------------------------------------------------------------
@@ -47,7 +51,7 @@ static void FSEventCallback(ConstFSEventStreamRef inStreamRef,
 							const FSEventStreamEventFlags inEventFlags[], 
 							const FSEventStreamEventId inEventIds[])
 {
-	UKFSEventsWatcher* watcher = (UKFSEventsWatcher*)inClientCallBackInfo;
+	UKFSEventsWatcher* watcher = (__bridge UKFSEventsWatcher*)inClientCallBackInfo;
 	
 	if (watcher != nil && [watcher delegate] != nil)
 	{
@@ -55,7 +59,7 @@ static void FSEventCallback(ConstFSEventStreamRef inStreamRef,
 		
 		if ([delegate respondsToSelector:@selector(watcher:receivedNotification:forPath:)])
 		{
-			NSEnumerator* paths = [(NSArray*)inEventPaths objectEnumerator];
+			NSEnumerator* paths = [(__bridge NSArray*)inEventPaths objectEnumerator];
 			NSString* path;
 			
 			while (path = [paths nextObject])
@@ -120,8 +124,7 @@ static void FSEventCallback(ConstFSEventStreamRef inStreamRef,
 -(void) dealloc
 {
 	[self removeAllPaths];
-    [eventStreams release];
-    [super dealloc];
+    eventStreams = nil;
 }
 
 -(void) finalize
@@ -233,12 +236,12 @@ static void FSEventCallback(ConstFSEventStreamRef inStreamRef,
 				
 	FSEventStreamContext context;
 	context.version = 0;
-	context.info = (void*) self;
+	context.info = (__bridge void*) self;
 	context.retain = NULL;
 	context.release = NULL;
 	context.copyDescription = NULL;
 				
-	FSEventStreamRef stream = FSEventStreamCreate(NULL,&FSEventCallback,&context,(CFArrayRef)paths,kFSEventStreamEventIdSinceNow,latency,flags);
+	FSEventStreamRef stream = FSEventStreamCreate(NULL, &FSEventCallback, &context,(__bridge CFArrayRef)paths, kFSEventStreamEventIdSinceNow, latency, flags);
 
 	if (stream)
 	{
@@ -268,7 +271,7 @@ static void FSEventCallback(ConstFSEventStreamRef inStreamRef,
 	
     @synchronized (self)
     {
-        value = [[[eventStreams objectForKey:path] retain] autorelease];
+        value = [eventStreams objectForKey:path];
         [eventStreams removeObjectForKey:path];
     }
     
