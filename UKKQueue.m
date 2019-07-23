@@ -162,6 +162,7 @@
 	int						queueFD;				// The actual queue ID (Unix file descriptor).
 	NSMutableDictionary*	watchedFiles;			// List of UKKQueuePathEntries.
 	BOOL					keepThreadRunning;
+	NSMutableSet*			entriesPendingRelease;
 }
 
 -(int)		queueFD;				// I know you unix geeks want this...
@@ -209,6 +210,7 @@ static UKKQueueCentral	*	gUKKQueueSharedQueueSingleton = nil;
 		}
 		
 		watchedFiles = [[NSMutableDictionary alloc] init];
+		entriesPendingRelease = [[NSMutableSet alloc] init];
 	}
 	
 	return self;
@@ -228,6 +230,7 @@ static UKKQueueCentral	*	gUKKQueueSharedQueueSingleton = nil;
 	[self removeAllPaths];
 	
 	watchedFiles = nil;
+	entriesPendingRelease = nil;
 }
 
 
@@ -325,7 +328,10 @@ static UKKQueueCentral	*	gUKKQueueSharedQueueSingleton = nil;
 	{
 		UKKQueuePathEntry*	pe = [watchedFiles objectForKey: path];	// Already watching this path?
 		if( pe && [pe releasePath] )	// Give up one subscription. Is this the last subscription?
+		{
+			[entriesPendingRelease addObject:pe];		// delay release of UKKQueuePathEntry until after all associated kevent messages can be dequeued
 			[watchedFiles removeObjectForKey: path];	// Unsubscribe from this file.
+		}
 	}
 }
 
@@ -374,6 +380,7 @@ static UKKQueueCentral	*	gUKKQueueSharedQueueSingleton = nil;
     struct kevent		ev;
     struct timespec     timeout = { 1, 0 }; // 1 second timeout. Should be longer, but we need this thread to exit when a kqueue is dealloced, so 1 second timeout is quite a while to wait.
 	int					theFD = queueFD;	// So we don't have to risk accessing iVars when the thread is terminated.
+	NSMutableSet*		removedEntries = entriesPendingRelease;
     
 	#if DEBUG_LOG_THREAD_LIFETIME
 	DEBUG_LOG_UKKQ(@"watcherThread started.");
@@ -413,6 +420,14 @@ static UKKQueueCentral	*	gUKKQueueSharedQueueSingleton = nil;
 							if( (ev.fflags & NOTE_REVOKE) == NOTE_REVOKE )
 								[self postNotification: UKFileWatcherAccessRevocationNotification forFile: fpath];
 						}
+					}
+				}
+				else
+				{
+					// kevent queue has been emptied, can safely release the stashed UKKQueuePathEntry user data
+					@synchronized (self)
+					{
+						[removedEntries removeAllObjects];
 					}
 				}
 			}
